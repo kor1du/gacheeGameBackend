@@ -45,7 +45,7 @@ public class GlobalControllerExceptionHandler
     private ResponseEntity<ResponseDto> setErrorResponse(HttpStatus httpStatus, String errorMessage)
     {
         ResponseDto responseDto = ResponseDto.builder()
-            .httpStatus(httpStatus.value())
+            .status(httpStatus.value())
             .message(errorMessage)
             .build();
 

@@ -1,20 +1,13 @@
 package com.gacheeGame.filter;
 
-import ch.qos.logback.core.spi.ErrorCodes;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gacheeGame.dto.ResponseDto;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,6 +28,7 @@ public class JwtExceptionFilter extends OncePerRequestFilter
                 IllegalArgumentException |
                 JwtException e) {
             setErrorResponse(response, e.getMessage());
+            log.error("Jwt 인증 실패", e);
         }
     }
 
@@ -44,7 +38,7 @@ public class JwtExceptionFilter extends OncePerRequestFilter
 
         ResponseDto responseDto = ResponseDto
             .builder()
-            .httpStatus(responseStatus)
+            .status(responseStatus)
             .message(errorMessage)
             .build();
 

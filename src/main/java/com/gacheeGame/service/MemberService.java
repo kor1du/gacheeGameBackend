@@ -1,31 +1,27 @@
 package com.gacheeGame.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.gacheeGame.dto.JwtTokenDto;
 import com.gacheeGame.dto.KakaoOAuthDto;
+import com.gacheeGame.dto.MemberDto.Info;
 import com.gacheeGame.dto.ResponseDto;
 import com.gacheeGame.entity.Member;
 import com.gacheeGame.enums.Role;
 import com.gacheeGame.handler.CustomBadRequestException;
+import com.gacheeGame.mapper.MemberMapper;
 import com.gacheeGame.repository.MemberRepository;
 import com.gacheeGame.util.JsonUtil;
 import com.gacheeGame.util.JwtTokenProvider;
-import java.net.URI;
+import jakarta.transaction.Transactional;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
-import jdk.jfr.ContentType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -34,7 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -42,18 +37,42 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class MemberService
 {
     @Value("${oauth.kakao.rest-api-key}")
-    private String kakaoRestAPIKey; //카카오 RestAPI 키 값
+    private String kakaoRestAPIKey; //카카오 RestAPI
+
+    @Value("${oauth.kakao.redirect-uri}")
+    private String kakaoRedirectURI; //카카오 Redirect URI
 
     private final MemberRepository memberRepository;
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final MemberMapper memberMapper;
 
     //oauth 로그인 로직
     public ResponseDto oauth(String code)
     {
         return kakaoLogin(code);
+    }
+
+    public ResponseDto info(Long memberId)
+    {
+        try {
+            Member member = memberRepository.findById(memberId).orElseThrow(() -> new CustomBadRequestException("찾는 유저가 존재하지 않습니다."));
+
+            Info memberInfoDto = memberMapper.memberToInfoDto(member);
+
+            return ResponseDto
+                            .builder()
+                            .status(HttpStatus.OK.value())
+                            .body(JsonUtil.ObjectToJsonObject("memberInfo", memberInfoDto))
+                            .message("유저 정보를 성공적으로 불러왔습니다.")
+                            .build();
+        }catch (CustomBadRequestException e) {
+            throw e;
+        }catch (Exception e) {
+            log.error("유저 정보를 가져오던중 오류가 발생하였습니다.", e);
+            throw new CustomBadRequestException("유저 정보를 가져오던중 오류가 발생하였습니다.");
+        }
     }
 
     //카카오 액세스 토큰 발급
@@ -63,7 +82,7 @@ public class MemberService
 
         params.add("grant_type", "authorization_code");
         params.add("client_id", kakaoRestAPIKey);
-        params.add("redirect_uri", "http://localhost:8085/login");
+        params.add("redirect_uri", kakaoRedirectURI);
         params.add("code", code);
 
         WebClient webClient = WebClient
@@ -108,9 +127,11 @@ public class MemberService
                                     .nickname(kakaoAccount.get("profile").get("nickname").textValue())
                                     .email(kakaoAccount.get("email").textValue())
                                     .gender(kakaoAccount.get("gender").textValue())
+                                    .profileImage(kakaoAccount.get("profile").get("profile_image_url").textValue())
                                     .build();
     }
 
+    @Transactional
     //카카오 회원번호로 db에서 멤버 조회 후 있으면 로그인처리 없으면 회원가입 후 로그인처리
     private ResponseDto kakaoLogin(String code)
     {
@@ -118,24 +139,22 @@ public class MemberService
             String accessToken = getKakaoToken(code);
             KakaoOAuthDto.UserInfo userInfo = getKakaoUserInfo(accessToken);
 
-            Member member = memberRepository.findByUserId(userInfo.getUserId());
+            //카카오 회원번호로 가입된 기존 회원이 없으면 로그인, 기존 회원이 존재하면 회원가입처리
+            Member member = memberRepository
+                                            .findByoAuthId(userInfo.getUserId())
+                                            .orElseGet(() -> signup(userInfo));
 
-            //카카오 회원번호로 가입된 기존 회원이 없음 (회원가입처리)
-            if(member == null)
-            {
-                member = signup(userInfo);
-            }
-
+            Info memberInfoDto = memberMapper.memberToInfoDto(member);
             JwtTokenDto.Response jwtTokenDto = getJwtTokenDto(member);
 
             HashMap<String,Object> resultMap = new HashMap<>();
 
-            resultMap.put("user", member);
+            resultMap.put("memberInfo", memberInfoDto);
             resultMap.put("jwtToken", jwtTokenDto);
 
             return ResponseDto
                             .builder()
-                            .httpStatus(HttpStatus.OK.value())
+                            .status(HttpStatus.OK.value())
                             .body(JsonUtil.ObjectToJsonObject(resultMap))
                             .message("로그인이 완료되었습니다.")
                             .build();
@@ -152,13 +171,16 @@ public class MemberService
     {
         Member member = Member
             .builder()
-            .userId(userInfo.getUserId())
+            .oAuthId(userInfo.getUserId())
             .name(userInfo.getNickname())
             .gender(userInfo.getGender())
-            .profileImage("")
+            .profileImage(userInfo.getProfileImage())
+            .email(userInfo.getEmail())
             .social("kakao")
-            .isFirst(true)
-            .role(Role.USER)
+            .isFirstTime(true)
+            .role(Role.ROLE_USER)
+            .createdAt(new Date())
+            .updatedAt(new Date())
             .build();
 
         memberRepository.save(member);
@@ -172,7 +194,7 @@ public class MemberService
         //Authentication 객체 생성
         List<GrantedAuthority> roles = new ArrayList<>();
         roles.add(new SimpleGrantedAuthority(member.getRole().toString()));
-        Authentication authentication = new UsernamePasswordAuthenticationToken(member.getUserId(), null, roles);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(member.getMemberId(), null, roles);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         //JwtTokenDto 객체 생성

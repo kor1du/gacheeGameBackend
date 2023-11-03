@@ -5,6 +5,7 @@ import com.gacheeGame.filter.JwtAuthenticationFilter;
 import com.gacheeGame.filter.JwtExceptionFilter;
 import com.gacheeGame.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -35,10 +36,16 @@ public class SecurityConfig
         return (web) -> web
             .ignoring()
             .requestMatchers(
-                new AntPathRequestMatcher("/h2-console/**"),
+                PathRequest.toH2Console(),
+                PathRequest.toStaticResources().atCommonLocations(),
+//                new AntPathRequestMatcher("/h2-console/**"),
                 new AntPathRequestMatcher("/swagger-ui/**"),
                 new AntPathRequestMatcher("/v3/api-docs/**"),
-                new AntPathRequestMatcher("/login")
+                new AntPathRequestMatcher("/member/oauth"),
+                new AntPathRequestMatcher("/member/info"),
+                new AntPathRequestMatcher("/category/categoryList"),
+                new AntPathRequestMatcher("/question/questionList"),
+                new AntPathRequestMatcher("/token/getToken")
             );
     }
 
@@ -51,6 +58,9 @@ public class SecurityConfig
                 sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(new AntPathRequestMatcher("/token/reissue")).hasRole("USER")
+                .requestMatchers(new AntPathRequestMatcher("/memberAnswer/memberAnswerList")).hasRole("USER")
+                .requestMatchers(new AntPathRequestMatcher("/memberAnswer/saveAnswerList")).hasRole("USER")
+                .requestMatchers(new AntPathRequestMatcher("/memberAnswer/matchedMemberList")).hasRole("USER")
                 .anyRequest().authenticated())
             .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtExceptionFilter(objectMapper), JwtAuthenticationFilter.class)

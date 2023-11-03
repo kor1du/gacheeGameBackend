@@ -9,15 +9,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-//@RequestMapping("/member")
+@RequestMapping("/member")
 @RequiredArgsConstructor
 public class MemberController
 {
     private final MemberService memberService;
-
-    @GetMapping("/login")
-    public ResponseEntity<ResponseDto> oauth(String code)
+ 
+    //oauth 로그인 / 회원가입
+    @GetMapping("/oauth")
+    public ResponseEntity<ResponseDto> oauth (String code)
     {
         return ResponseEntity.ok(memberService.oauth(code));
+    }
+    
+    //유저 정보 조회
+    @GetMapping("/info")
+    public ResponseEntity<ResponseDto> info (Long memberId)
+    {
+        return ResponseEntity.ok(memberService.info(memberId));
     }
 }
