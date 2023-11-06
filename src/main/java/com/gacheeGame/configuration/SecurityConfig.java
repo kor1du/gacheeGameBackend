@@ -37,50 +37,43 @@ public class SecurityConfig
             .ignoring()
             .requestMatchers(
                 PathRequest.toH2Console(),
-                PathRequest.toStaticResources().atCommonLocations(),
-//                new AntPathRequestMatcher("/h2-console/**"),
-                new AntPathRequestMatcher("/swagger-ui/**"),
-                new AntPathRequestMatcher("/v3/api-docs/**"),
-                new AntPathRequestMatcher("/member/oauth"),
-                new AntPathRequestMatcher("/member/info"),
-                new AntPathRequestMatcher("/category/categoryList"),
-                new AntPathRequestMatcher("/question/questionList"),
-                new AntPathRequestMatcher("/token/getToken")
+                PathRequest.toStaticResources().atCommonLocations()
+            )
+            .requestMatchers(
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/member/oauth",
+                "/member/info",
+                "/category/categoryList",
+                "/question/questionList",
+                "/token/getToken"
             );
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
     {
-        http.
-                csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement((sessionManagement)->
-                sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(new AntPathRequestMatcher("/token/reissue")).hasRole("USER")
-                .requestMatchers(new AntPathRequestMatcher("/memberAnswer/memberAnswerList")).hasRole("USER")
-                .requestMatchers(new AntPathRequestMatcher("/memberAnswer/saveAnswerList")).hasRole("USER")
-                .requestMatchers(new AntPathRequestMatcher("/memberAnswer/matchedMemberList")).hasRole("USER")
-                .anyRequest().authenticated())
+        http
+            .csrf()
+            .disable()
+            .cors()
+            .and()
+            .sessionManagement()
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeHttpRequests()
+            .requestMatchers(
+                    "/memberAnswer/memberAnswerList",
+                    "/memberAnswer/saveAnswerList",
+                    "/memberAnswer/matchedMemberList")
+            .hasRole("USER")
+            .anyRequest()
+            .authenticated()
+            .and()
             .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtExceptionFilter(objectMapper), JwtAuthenticationFilter.class)
             .httpBasic(Customizer.withDefaults());
 
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource()
-    {
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.addAllowedOriginPattern("*");
-        configuration.addAllowedHeader("*");
-        configuration.addAllowedMethod("*");
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 }

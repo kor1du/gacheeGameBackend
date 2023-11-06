@@ -12,7 +12,7 @@ public class CorsConfig implements WebMvcConfigurer
     {
         //전체 resource를 허용할 경우 registry.addMapping("/**")...
         registry.addMapping("/**")   //mapping할 resource를 지정합니다.
-            .allowedOrigins("http://localhost:3000")
+            .allowedOrigins("http://localhost:3000", "http://localhost:8085")
             .allowedMethods("OPTIONS", "GET", "POST", "PUT", "DELETE"); //CORS를 허용할 origin을 지정합니다.
     }
 }
