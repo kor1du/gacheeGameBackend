@@ -36,10 +36,10 @@ public class SecurityConfig
         return (web) -> web
             .ignoring()
             .requestMatchers(
-                PathRequest.toH2Console(),
                 PathRequest.toStaticResources().atCommonLocations()
             )
             .requestMatchers(
+                "/h2-console/**",
                 "/swagger-ui/**",
                 "/v3/api-docs/**",
                 "/member/oauth",
