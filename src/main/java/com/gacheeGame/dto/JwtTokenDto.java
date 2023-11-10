@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 
 public class JwtTokenDto
 {
-    @Builder
     @Data
+    @Builder
     public static class Response
     {
         private String accessToken; //엑세스 토큰
@@ -20,8 +20,6 @@ public class JwtTokenDto
 
     @Builder
     @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class Reissue
     {
         @NotEmpty(message = "accessToken이 존재하지 않습니다.")

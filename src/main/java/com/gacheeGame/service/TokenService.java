@@ -1,6 +1,7 @@
 package com.gacheeGame.service;
 
 import com.gacheeGame.dto.JwtTokenDto;
+import com.gacheeGame.dto.JwtTokenDto.Response;
 import com.gacheeGame.dto.ResponseDto;
 import com.gacheeGame.entity.Member;
 import com.gacheeGame.repository.MemberRepository;
@@ -24,30 +25,12 @@ public class TokenService
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberRepository memberRepository;
 
-    public ResponseDto getToken(Long oAuthId)
+    //테스트용 토큰 발급
+    public Response getToken(Long oAuthId)
     {
         Member member = memberRepository.findByoAuthId(oAuthId).get();
 
-        JwtTokenDto.Response response = getJwtTokenDto(member);
-
-        return ResponseDto.builder()
-            .status(HttpStatus.OK.value())
-            .body(JsonUtil.ObjectToJsonObject("jwtToken", response))
-            .message("테스트용 토큰이 생성되었습니다.")
-            .build();
-    }
-
-    //JwtTokenDto 객체 반환
-    private JwtTokenDto.Response getJwtTokenDto(Member member)
-    {
-        //Authentication 객체 생성
-        List<GrantedAuthority> roles = new ArrayList<>();
-        roles.add(new SimpleGrantedAuthority(member.getRole().toString()));
-        Authentication authentication = new UsernamePasswordAuthenticationToken(member.getMemberId(), null, roles);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        //JwtTokenDto 객체 생성
-        JwtTokenDto.Response jwtTokenDto = jwtTokenProvider.generateToken(authentication);
+        Response jwtTokenDto = jwtTokenProvider.getJwtTokenDto(member);
 
         return jwtTokenDto;
     }

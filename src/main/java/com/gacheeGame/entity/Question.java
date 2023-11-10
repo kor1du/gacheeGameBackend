@@ -52,11 +52,6 @@ public class Question
     private String subTitle; //상황 서브제목
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category; //FK (카테고리)
-
-    @OneToMany(mappedBy = "question", fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<Answer> answerList = new ArrayList<>();
+    @Column(name = "category_id", nullable = false)
+    private Long categoryId; //FK (카테고리)
 }

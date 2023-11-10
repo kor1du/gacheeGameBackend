@@ -1,6 +1,7 @@
 package com.gacheeGame.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -31,17 +32,17 @@ public class MemberAnswer
     @Column(name = "member_answer_id", nullable = false)
     private Long memberAnswerId; //PK
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "answer_id", nullable = false)
-    private Answer answer; //FK (질문)
+    @Column(name = "answer_id", nullable = false)
+    private Long answerId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @Column(name = "category_id", nullable = false)
+    private Long categoryId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "matched_member_id")
-    private Member matchedMember;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
+
+    @Column(name = "matched_member_id")
+    private Long matchedMemberId;
 
     @Column(name = "created_at", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)

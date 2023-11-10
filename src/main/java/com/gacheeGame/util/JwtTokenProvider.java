@@ -1,6 +1,8 @@
 package com.gacheeGame.util;
 
 import com.gacheeGame.dto.JwtTokenDto;
+import com.gacheeGame.dto.JwtTokenDto.Response;
+import com.gacheeGame.entity.Member;
 import com.gacheeGame.handler.CustomBadRequestException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -56,8 +58,23 @@ public class JwtTokenProvider
     private final long ACCESS_TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000L; //테스트용 액세스 토큰 만료시간(7일)
     private final long REFRESH_TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000L; //7(일) * (24(시간) * 1(시간) = 7일 = refreshToken 만료시간
 
+    //JwtTokenDto 객체 반환
+    public Response getJwtTokenDto(Member member)
+    {
+        //Authentication 객체 생성
+        List<GrantedAuthority> roles = new ArrayList<>();
+        roles.add(new SimpleGrantedAuthority(member.getRole().toString()));
+        Authentication authentication = new UsernamePasswordAuthenticationToken(member.getMemberId(), null, roles);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        //JwtTokenDto 객체 생성
+        Response jwtTokenDto = generateToken(authentication);
+
+        return jwtTokenDto;
+    }
+
     //토큰 생성
-    public JwtTokenDto.Response generateToken(Authentication authentication)
+    private JwtTokenDto.Response generateToken(Authentication authentication)
     {
         //권한 가져오기
         String authorities = authentication

@@ -1,11 +1,10 @@
 package com.gacheeGame.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.gacheeGame.dto.AnswerDto;
+import com.gacheeGame.dto.AnswerDto.AnswerList;
 import com.gacheeGame.dto.MemberAnswerDto;
+import com.gacheeGame.dto.MemberAnswerDto.MatchedDto;
 import com.gacheeGame.dto.ResponseDto;
-import com.gacheeGame.entity.Answer;
-import com.gacheeGame.entity.Member;
 import com.gacheeGame.entity.MemberAnswer;
 import com.gacheeGame.handler.CustomBadRequestException;
 import com.gacheeGame.mapper.MemberAnswerMapper;
@@ -14,18 +13,18 @@ import com.gacheeGame.repository.MemberAnswerRepository;
 import com.gacheeGame.repository.MemberRepository;
 import com.gacheeGame.util.JsonUtil;
 import com.gacheeGame.util.SessionUtil;
-import jakarta.transaction.Transactional;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -35,144 +34,125 @@ public class MemberAnswerService
     private final MemberAnswerRepository memberAnswerRepository;
     private final AnswerRepository answerRepository;
     private final MemberRepository memberRepository;
+    private final MemberAnswerMapper memberAnswerMapper;
 
-    public ResponseDto memberAnswerList(Long matchedMemberId)
+    // 상대방 or 내 답변 가져오기
+    @Transactional(readOnly = true)
+    public HashMap<String,Object> memberAnswerList(Long matchedMemberId, Long categoryId)
     {
         try{
             HashMap<String, Object> resultMap = new HashMap<>();
             HashMap<String, Object> memberAnswerListMap = new HashMap<>();
 
+            //내 유저 정보 조회
             Long memberId = Long.parseLong(SessionUtil.getUser().getUsername());
 
+            //내 답변 목록 조회
+            List<AnswerDto.AnswerList> myAnswerList = answerRepository.findAnswerList(memberId, matchedMemberId, categoryId);
+
+            //결과 Map에 저장
+            memberAnswerListMap.put("myAnswerList", myAnswerList);
+
+            //공유받은 링크에 답장시
             if(matchedMemberId != null)
             {
-                List<MemberAnswerDto.AnswerList> matchedMemberAnswerList = memberAnswerRepository
-                    .findByMemberId(matchedMemberId)
-                    .get()
-                    .stream()
-                    .map(a -> MemberAnswerDto.AnswerList
-                        .builder()
-                        .answerId(a.getAnswer().getAnswerId())
-                        .questionId(a.getAnswer().getQuestion().getQuestionId())
-                        .build())
-                    .collect(Collectors.toList());
+                //상대방 답변 조회
+                List<AnswerDto.AnswerList> matchedMemberAnswerList = answerRepository.findAnswerList(matchedMemberId, null, categoryId);
 
+                //결과 Map에 저장
                 memberAnswerListMap.put("matchedMemberAnswerList", matchedMemberAnswerList);
-                resultMap.put("matchScore", getMatchScore(memberId,matchedMemberId));
+
+                resultMap.put("matchScore", getMatchScore(myAnswerList, matchedMemberAnswerList));
                 resultMap.put("matchedMemberName", memberRepository.findById(matchedMemberId).get().getName());
             }
 
-            List<MemberAnswerDto.AnswerList> memberAnswerList = memberAnswerRepository
-                                                                                    .findByMemberId(memberId)
-                                                                                    .get()
-                                                                                    .stream()
-                                                                                    .map(a -> MemberAnswerDto.AnswerList
-                                                                                    .builder()
-                                                                                    .answerId(a.getAnswer().getAnswerId())
-                                                                                    .questionId(a.getAnswer().getQuestion().getQuestionId())
-                                                                                    .build())
-                                                                                    .collect(Collectors.toList());
-
-            memberAnswerListMap.put("myAnswerList", memberAnswerList);
             resultMap.put("memberAnswerList", memberAnswerListMap);
 
-            return ResponseDto
-                .builder()
-                .status(HttpStatus.OK.value())
-                .body(JsonUtil.ObjectToJsonObject(resultMap))
-                .message("답변 리스트들을 정상적으로 불러왔습니다.")
-                .build();
+            return resultMap;
         }catch (Exception e) {
             log.error("내 답변 리스트들을 불러오던 중 오류가 발생했습니다.", e);
             throw new CustomBadRequestException("내 답변 리스트들을 불러오던 중 오류가 발생했습니다.");
         }
     }
 
+    //답안 저장
     @Transactional
-    public ResponseDto saveAnswerList(MemberAnswerDto.Request memberAnswerDtoRequest)
+    public void saveAnswerList(MemberAnswerDto.Request memberAnswerDtoRequest)
     {
         try{
-            List<Answer> answerList = answerRepository.findByAnswerIdIn(memberAnswerDtoRequest.getAnswerList()).get();
+            //답안 파싱
+            List<Long> answerList = memberAnswerDtoRequest.getAnswerList();
 
+            //내 유저 정보와 매칭된 유저 정보를 가져온다
             Long memberId = Long.parseLong(SessionUtil.getUser().getUsername());
             Long matchedMemberId = memberAnswerDtoRequest.getMatchedMemberId();
 
-            Member member = memberRepository.findById(memberId).get();
-            Member matchedMember = matchedMemberId != null ? memberRepository.findById(matchedMemberId).get() : null;
+            //카테고리 ID 파싱
+            Long categoryId = memberAnswerDtoRequest.getCategoryId();
 
-            List<MemberAnswer> memberAnswerList = answerList
+            //기존 답변목록 조회 및 삭제
+            List<MemberAnswer> oldMemberAnswerList = memberAnswerRepository.findMemberAnswer(memberId, matchedMemberId, categoryId);
+
+            if(!oldMemberAnswerList.isEmpty() || oldMemberAnswerList != null)
+            {
+                //삭제대상 IdList
+                List<Long> deleteIdList = oldMemberAnswerList
                                                             .stream()
-                                                            .map(a -> MemberAnswer
-                                                                                .builder()
-                                                                                .answer(a)
-                                                                                .member(member)
-                                                                                .matchedMember(matchedMember)
-                                                                                .createdAt(new Date())
-                                                                                .updatedAt(new Date())
-                                                                                .build())
+                                                            .map(o -> o.getMemberAnswerId())
                                                             .collect(Collectors.toList());
 
-            memberAnswerRepository.saveAll(memberAnswerList);
+                //삭제
+                memberAnswerRepository.deleteAllById(deleteIdList);
+            }
 
-            return ResponseDto
-                .builder()
-                .status(HttpStatus.OK.value())
-                .message("답변이 저장되었습니다.")
-                .build();
+            //새로운 MemberAnswer 리스트 생성
+            List<MemberAnswer> memberAnswer = answerList
+                                    .stream()
+                                    .map(a -> memberAnswerMapper.map(a, categoryId, memberId, matchedMemberId, new Date(), new Date()))
+                                    .collect(Collectors.toList());
+
+            //DB 저장
+            memberAnswerRepository.saveAll(memberAnswer);
         }catch (Exception e) {
             log.error("답변을 저장하던중 오류가 발생했습니다.", e);
             throw new CustomBadRequestException("답변을 저장하던중 오류가 발생했습니다.");
         }
     }
 
-    public ResponseDto matchedMemberList(Long categoryId)
+    public List<MatchedDto> matchedMemberList(Long categoryId)
     {
         try{
-            Long matchedMemberId = Long.parseLong(SessionUtil.getUser().getUsername());
+            Long myMemberId = Long.parseLong(SessionUtil.getUser().getUsername());
 
-            List<MemberAnswerDto.MatchedDto> matchedMemberList = memberAnswerRepository
-                .findMatchedUser(categoryId, matchedMemberId)
-                .get()
-                .stream()
-                .map(ma -> MemberAnswerDto.MatchedDto
-                    .builder()
-                    .memberId(ma.getMember().getMemberId())
-                    .profileImage(ma.getMember().getProfileImage())
-                    .name(ma.getMember().getName())
-                    .email(ma.getMember().getEmail())
-                    .isFirstTime(ma.getMember().isFirstTime())
-                    .gender(ma.getMember().getGender())
-                    .social(ma.getMember().getSocial())
-                    .createdAt(ma.getCreatedAt())
-                    .updatedAt(ma.getUpdatedAt())
-                    .matchScore(getMatchScore(ma.getMember().getMemberId(), matchedMemberId))
-                    .build())
-                .distinct()
-                .collect(Collectors.toList());
+            //나와 매칭된 유저 목록 조회
+            List<MatchedDto> matchedMemberList = memberAnswerRepository.findMatchedMemberList(categoryId, myMemberId);
 
-            return ResponseDto
-                .builder()
-                .status(HttpStatus.OK.value())
-                .body(JsonUtil.ObjectToJsonObject("matchedMemberList", matchedMemberList))
-                .message("유저 목록을 정상적으로 불러왔습니다.")
-                .build();
+            if(!matchedMemberList.isEmpty() && matchedMemberList != null)
+            {
+                //내 답변 조회
+                List<AnswerList> myAnswerList = answerRepository.findAnswerList(myMemberId, null, categoryId);
+
+                //matchScore 계산
+                matchedMemberList
+                    .stream()
+                    .forEach(m -> m.setMatchScore(getMatchScore(myAnswerList, answerRepository.findAnswerList(m.getMemberId(), myMemberId, categoryId))));
+            }
+
+            return matchedMemberList;
         }catch (Exception e){
             log.error("유저 목록을 불러오던 중 오류가 발생했습니다.", e);
             throw new CustomBadRequestException("유저 목록을 불러오던 중 오류가 발생했습니다.");
         }
     }
 
-    public double getMatchScore(Long memberId, Long matchedMemberId)
+    public double getMatchScore(List<AnswerList> memberAnswerList, List<AnswerList> matchedMemberAnswerList)
     {
-        List<MemberAnswer> memberAnswerList = memberAnswerRepository.findByMemberId(memberId).get();
-        List<MemberAnswer> matchedMemberAnswerList = memberAnswerRepository.findByMemberId(matchedMemberId).get();
-
         double sum = 0;
 
         for(int i = 0; i < memberAnswerList.size(); i++)
         {
-            Long memberAnswerId = memberAnswerList.get(i).getAnswer().getAnswerId();
-            Long matchedMemberAnswerId = matchedMemberAnswerList.get(i).getAnswer().getAnswerId();
+            Long memberAnswerId = memberAnswerList.get(i).getAnswerId();
+            Long matchedMemberAnswerId = matchedMemberAnswerList.get(i).getAnswerId();
 
             if(memberAnswerId == matchedMemberAnswerId)
                 sum++;

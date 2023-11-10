@@ -1,6 +1,7 @@
 package com.gacheeGame.service;
 
 import com.gacheeGame.dto.QuestionDto;
+import com.gacheeGame.dto.QuestionDto.Response;
 import com.gacheeGame.dto.ResponseDto;
 import com.gacheeGame.handler.CustomBadRequestException;
 import com.gacheeGame.repository.QuestionRepository;
@@ -19,25 +20,15 @@ import org.springframework.stereotype.Service;
 public class QuestionService
 {
     private final QuestionRepository questionRepository;
-    private final ModelMapper modelMapper;
 
-    public ResponseDto questionList()
+    public List<Response> questionList()
     {
         try {
-            List<QuestionDto.Response> questionList = questionRepository
-                                                                        .findAllQuestionsWithAnswers()
-                                                                        .stream()
-                                                                        .map(q -> modelMapper.map(q, QuestionDto.Response.class))
-                                                                        .collect(Collectors.toList());
+            List<Response> questionList = questionRepository.findQuestionAndAnswerList();
 
-            return ResponseDto
-                            .builder()
-                            .status(HttpStatus.OK.value())
-                            .body(JsonUtil.ObjectToJsonObject("questionList", questionList))
-                            .message("질문 데이터를 정상적으로 불러왔습니다.")
-                            .build();
+            return questionList;
         }catch (Exception e){
-            log.error("질문 데이터를 불러오던 중 오류가 발생하였습니다.");
+            log.error("질문 데이터를 불러오던 중 오류가 발생하였습니다.", e);
             throw new CustomBadRequestException("질문 데이터를 불러오던 중 오류가 발생하였습니다.");
         }
     }

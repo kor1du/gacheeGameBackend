@@ -15,16 +15,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 public class MemberAnswerDto
 {
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class AnswerList
-    {
-        private Long answerId;
-        private Long questionId;
-    }
-
     @Builder
     @Data
     @NoArgsConstructor
@@ -52,5 +42,6 @@ public class MemberAnswerDto
     {
         private List<Long> answerList; // 유저가 선택한 답변의 PK 리스트
         private Long matchedMemberId; //링크 공유한 유저 ID
+        private Long categoryId; //카테고리 ID
     }
 }

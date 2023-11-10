@@ -11,8 +11,6 @@ public class MemberDto
     //로그인 dto
     @Data
     @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class Info
     {
         private Long memberId; //PK

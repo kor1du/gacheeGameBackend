@@ -1,8 +1,11 @@
 package com.gacheeGame.service;
 
 import com.gacheeGame.dto.CategoryDto;
+import com.gacheeGame.dto.CategoryDto.Response;
 import com.gacheeGame.dto.ResponseDto;
+import com.gacheeGame.entity.Category;
 import com.gacheeGame.handler.CustomBadRequestException;
+import com.gacheeGame.mapper.CategoryMapper;
 import com.gacheeGame.repository.CategoryRepository;
 import com.gacheeGame.util.JsonUtil;
 import java.util.List;
@@ -12,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,25 +23,18 @@ import org.springframework.stereotype.Service;
 public class CategoryService
 {
     private final CategoryRepository categoryRepository;
-    private final ModelMapper modelMapper;
+    private final CategoryMapper categoryMapper;
 
-    public ResponseDto categoryList()
+    //카테고리 리스트 반환
+    @Transactional(readOnly = true)
+    public List<Response> categoryList()
     {
         try {
-            List<CategoryDto.Response> categoryList = categoryRepository
-                                                                        .findAll()
-                                                                        .stream()
-                                                                        .map(c -> modelMapper.map(c, CategoryDto.Response.class))
-                                                                        .collect(Collectors.toList());
+            List<Response> categoryList = categoryMapper.map(categoryRepository.findAll());
 
-            return ResponseDto
-                            .builder()
-                            .status(HttpStatus.OK.value())
-                            .body(JsonUtil.ObjectToJsonObject("categoryList", categoryList))
-                            .message("카테고리를 정상적으로 불러왔습니다.")
-                            .build();
+            return categoryList;
         }catch (Exception e){
-            log.error("카테고리를 불러오던 중 오류가 발생하였습니다.");
+            log.error("카테고리를 불러오던 중 오류가 발생하였습니다.", e);
             throw new CustomBadRequestException("카테고리를 불러오던 중 오류가 발생하였습니다.");
         }
     }

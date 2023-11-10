@@ -49,24 +49,21 @@ public class MemberService
     private final MemberMapper memberMapper;
 
     //oauth 로그인 로직
-    public ResponseDto oauth(String code)
+    public HashMap<String, Object> oauth(String code)
     {
         return kakaoLogin(code);
     }
 
-    public ResponseDto info(Long memberId)
+    public Info info(Long memberId)
     {
         try {
-            Member member = memberRepository.findById(memberId).orElseThrow(() -> new CustomBadRequestException("찾는 유저가 존재하지 않습니다."));
+            Member member = memberRepository
+                                            .findById(memberId)
+                                            .orElseThrow(() -> new CustomBadRequestException("찾는 유저가 존재하지 않습니다."));
 
             Info memberInfoDto = memberMapper.memberToInfoDto(member);
 
-            return ResponseDto
-                            .builder()
-                            .status(HttpStatus.OK.value())
-                            .body(JsonUtil.ObjectToJsonObject("memberInfo", memberInfoDto))
-                            .message("유저 정보를 성공적으로 불러왔습니다.")
-                            .build();
+            return memberInfoDto;
         }catch (CustomBadRequestException e) {
             throw e;
         }catch (Exception e) {
@@ -133,10 +130,13 @@ public class MemberService
 
     @Transactional
     //카카오 회원번호로 db에서 멤버 조회 후 있으면 로그인처리 없으면 회원가입 후 로그인처리
-    private ResponseDto kakaoLogin(String code)
+    private HashMap<String, Object> kakaoLogin(String code)
     {
         try {
+            //카카오 토큰 발급
             String accessToken = getKakaoToken(code);
+            
+            //카카오 유저 정보 조회
             KakaoOAuthDto.UserInfo userInfo = getKakaoUserInfo(accessToken);
 
             //카카오 회원번호로 가입된 기존 회원이 없으면 로그인, 기존 회원이 존재하면 회원가입처리
@@ -144,20 +144,20 @@ public class MemberService
                                             .findByoAuthId(userInfo.getUserId())
                                             .orElseGet(() -> signup(userInfo));
 
+            //회원 정보를 가진 Info 객체 생성
             Info memberInfoDto = memberMapper.memberToInfoDto(member);
-            JwtTokenDto.Response jwtTokenDto = getJwtTokenDto(member);
+            
+            //토큰 발급
+            JwtTokenDto.Response jwtTokenDto = jwtTokenProvider.getJwtTokenDto(member);
 
-            HashMap<String,Object> resultMap = new HashMap<>();
+            //응답값을 담을 HashMap 객체 생성
+            HashMap<String, Object> resultMap = new HashMap<>();
 
+            //멤버 정보, 토큰 정보 map에 저장
             resultMap.put("memberInfo", memberInfoDto);
             resultMap.put("jwtToken", jwtTokenDto);
 
-            return ResponseDto
-                            .builder()
-                            .status(HttpStatus.OK.value())
-                            .body(JsonUtil.ObjectToJsonObject(resultMap))
-                            .message("로그인이 완료되었습니다.")
-                            .build();
+            return resultMap;
         }catch (CustomBadRequestException e) {
             throw e;
         }catch (Exception e) {
@@ -169,6 +169,7 @@ public class MemberService
     //회원가입
     private Member signup(KakaoOAuthDto.UserInfo userInfo)
     {
+        //회원가입용 멤버 객체 생성
         Member member = Member
             .builder()
             .oAuthId(userInfo.getUserId())
@@ -183,23 +184,9 @@ public class MemberService
             .updatedAt(new Date())
             .build();
 
+        //DB 저장
         memberRepository.save(member);
 
         return member;
-    }
-
-    //JwtTokenDto 객체 반환
-    private JwtTokenDto.Response getJwtTokenDto(Member member)
-    {
-        //Authentication 객체 생성
-        List<GrantedAuthority> roles = new ArrayList<>();
-        roles.add(new SimpleGrantedAuthority(member.getRole().toString()));
-        Authentication authentication = new UsernamePasswordAuthenticationToken(member.getMemberId(), null, roles);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        //JwtTokenDto 객체 생성
-        JwtTokenDto.Response jwtTokenDto = jwtTokenProvider.generateToken(authentication);
-
-        return jwtTokenDto;
     }
 }

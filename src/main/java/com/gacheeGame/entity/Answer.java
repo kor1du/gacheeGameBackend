@@ -24,7 +24,6 @@ import lombok.NoArgsConstructor;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "answerId")
 public class Answer
 {
     @Id
@@ -33,10 +32,8 @@ public class Answer
     private Long answerId; //PK
 
     @Column(name = "answerContent", nullable = false)
-    private String answerContent; //카테고리 이름
+    private String answerContent; //질문 내용
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
-    @JsonBackReference
-    private Question question; //FK (카테고리)
+    @Column(name = "question_id", nullable = false)
+    private Long questionId; // 퀘스트 PK
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 public class KakaoOAuthDto
 {
     @Data
+    @Builder
     public static class Token
     {
         private String token_type; //토큰 종류(bearer로 고정)

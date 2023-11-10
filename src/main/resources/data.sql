@@ -638,41 +638,41 @@ insert
 -- MemberAnswer
 
 insert
-  into member_answer (answer_id, member_id, created_at, updated_at)
-  values (1, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, created_at, updated_at, category_id)
+  values (1, 1, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, created_at, updated_at)
-  values (3, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, created_at, updated_at, category_id)
+  values (3, 1, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, created_at, updated_at)
-  values (6, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at, category_id)
+  values (2, 1, 2, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
-  values (1, 2, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at, category_id)
+  values (3, 1, 2, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
-  values (3, 2, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, created_at, updated_at, category_id)
+  values (1, 2, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
-  values (5, 2, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, created_at, updated_at, category_id)
+  values (3, 2, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
-  values (2, 3, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at, category_id)
+  values (1, 2, 1, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
-  values (4, 3, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at, category_id)
+  values (3, 2, 1, NOW(), NOW(), 1);
 
 insert
-  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
-  values (5, 3, 1, NOW(), NOW());
+  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at, category_id)
+  values (2, 3, 1, NOW(), NOW(), 1);
 
---insert
---  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at)
---  values (1, 2, 1, NOW(), NOW());
+insert
+  into member_answer (answer_id, member_id, matched_member_id, created_at, updated_at, category_id)
+  values (4, 3, 1, NOW(), NOW(), 1);

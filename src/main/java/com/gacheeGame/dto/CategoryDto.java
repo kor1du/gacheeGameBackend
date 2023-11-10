@@ -9,8 +9,6 @@ public class CategoryDto
 {
     @Data
     @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class Response
     {
         private Long categoryId; //PK

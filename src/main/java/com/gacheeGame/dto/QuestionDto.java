@@ -1,11 +1,5 @@
 package com.gacheeGame.dto;
 
-import com.gacheeGame.entity.Answer;
-import com.gacheeGame.entity.Category;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
