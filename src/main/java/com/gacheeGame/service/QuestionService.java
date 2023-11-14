@@ -21,10 +21,10 @@ public class QuestionService
 {
     private final QuestionRepository questionRepository;
 
-    public List<Response> questionList()
+    public List<Response> questionList(Long categoryId)
     {
         try {
-            List<Response> questionList = questionRepository.findQuestionAndAnswerList();
+            List<Response> questionList = questionRepository.findQuestionAndAnswerList(categoryId);
 
             return questionList;
         }catch (Exception e){

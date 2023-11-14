@@ -39,7 +39,9 @@ public class SecurityConfig
                 PathRequest.toStaticResources().atCommonLocations()
             )
             .requestMatchers(
-                "/h2-console/**",
+                new AntPathRequestMatcher("/h2-console/**")
+            )
+            .requestMatchers(
                 "/swagger-ui/**",
                 "/v3/api-docs/**",
                 "/member/oauth",

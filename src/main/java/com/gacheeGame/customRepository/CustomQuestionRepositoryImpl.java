@@ -18,7 +18,7 @@ public class CustomQuestionRepositoryImpl implements CustomQuestionRepository
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<QuestionDto.Response> findQuestionAndAnswerList()
+    public List<QuestionDto.Response> findQuestionAndAnswerList(Long categoryId)
     {
         QQuestion qQuestion = new QQuestion("q");
         QAnswer qAnswer = new QAnswer("a");
@@ -28,6 +28,7 @@ public class CustomQuestionRepositoryImpl implements CustomQuestionRepository
             .leftJoin(qAnswer)
             .on(qAnswer.questionId.eq(qQuestion.questionId))
             .orderBy(qAnswer.answerId.asc())
+            .where(qQuestion.categoryId.eq(categoryId))
             .transform(
                         groupBy(qQuestion.questionId)
                         .list(
