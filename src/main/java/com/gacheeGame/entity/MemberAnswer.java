@@ -35,9 +35,6 @@ public class MemberAnswer
     @Column(name = "answer_id", nullable = false)
     private Long answerId;
 
-    @Column(name = "category_id", nullable = false)
-    private Long categoryId;
-
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
