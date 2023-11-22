@@ -15,13 +15,18 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -134,8 +139,15 @@ public class MemberService {
             //회원 정보를 가진 Info 객체 생성
             Info memberInfoDto = memberMapper.memberToInfoDto(member);
 
-            //토큰 발급
-            JwtTokenDto.Response jwtTokenDto = jwtTokenProvider.getJwtTokenDto(member);
+            //유저의 권한 파싱
+            List<GrantedAuthority> roles = new ArrayList<>();
+            roles.add(new SimpleGrantedAuthority(member.getRole().toString()));
+
+            //유저 정보로 AuthenticationToken 객체 생성
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(member.getMemberId(), null, roles);
+
+            //JWT 발급
+            JwtTokenDto.Response jwtTokenDto = jwtTokenProvider.generateToken(authenticationToken);
 
             //응답값을 담을 HashMap 객체 생성
             HashMap<String, Object> resultMap = new HashMap<>();

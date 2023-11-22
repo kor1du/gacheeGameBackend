@@ -6,42 +6,34 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
 
+import java.io.IOException;
+
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends GenericFilterBean
-{
+public class JwtAuthenticationFilter extends GenericFilterBean {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException
-    {
-        String jwtToken = resolveToken((HttpServletRequest) request); //클라이언트가 전송한 토큰 정보
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+        String accessToken = resolveToken((HttpServletRequest) request); //클라이언트가 전송한 토큰 정보
 
-        if(jwtTokenProvider.validateToken(jwtToken)) //토큰 유효성 검사
+        if (jwtTokenProvider.validateToken(accessToken)) //토큰 유효성 검사
         {
-            Authentication authentication = jwtTokenProvider.getAuthentication(jwtToken);
+            Authentication authentication = jwtTokenProvider.getAuthentication(accessToken);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
     }
 
-    private String resolveToken(HttpServletRequest request)
-    {
-        String bearerToken = request.getHeader("Authorization");
+    private String resolveToken(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
 
-        if(StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer"))
-        {
-            return bearerToken.substring(7);
-        }
-
-        return null;
+        return jwtTokenProvider.parseAuthorizationHeader(authorization);
     }
 }

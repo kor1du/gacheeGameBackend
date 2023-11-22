@@ -19,7 +19,6 @@ public class GlobalControllerExceptionHandler {
     //기능 실행중 미리 지정해둔 오류 발생시 아래 오류 handler에서 처리
     @ExceptionHandler(CustomBadRequestException.class)
     public ResponseEntity<ResponseDto> handleBadRequestException(CustomBadRequestException e) {
-        log.error(e.getMessage(), e);
         return setErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
@@ -31,14 +30,12 @@ public class GlobalControllerExceptionHandler {
             IllegalArgumentException.class,
             JwtException.class})
     public ResponseEntity<ResponseDto> handleJwtException(Exception e) {
-        log.error(e.getMessage(), e);
         return setErrorResponse(HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 
     //컨트롤러 호출시 필수 인자가 누락되어있다면 아래 오류 handler에서 처리
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ResponseDto> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.error(e.getMessage(), e);
         return setErrorResponse(HttpStatus.BAD_REQUEST, e.getFieldError().getDefaultMessage());
     }
 

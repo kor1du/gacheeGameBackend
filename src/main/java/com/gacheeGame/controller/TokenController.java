@@ -7,30 +7,40 @@ import com.gacheeGame.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/token")
 @RequiredArgsConstructor
-public class TokenController
-{
+public class TokenController {
     private final TokenService tokenService;
 
+    //테스트용 토큰 발급
     @GetMapping("/getToken")
-    public ResponseEntity<ResponseDto> getToken(@RequestParam Long oAuthId)
-    {
+    public ResponseEntity<ResponseDto> getToken(@RequestParam Long oAuthId) {
         Response jwtTokenDto = tokenService.getToken(oAuthId);
 
         ResponseDto responseDto = ResponseDto
-                                            .builder()
-                                            .status(HttpStatus.OK.value())
-                                            .body(JsonUtil.ObjectToJsonObject("jwtToken", jwtTokenDto))
-                                            .message("테스트용 토큰이 생성되었습니다.")
-                                            .build();
+                .builder()
+                .status(HttpStatus.OK.value())
+                .body(JsonUtil.ObjectToJsonObject("jwtToken", jwtTokenDto))
+                .message("테스트용 토큰이 생성되었습니다.")
+                .build();
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+    //토큰 재발급
+    @GetMapping("reissue")
+    public ResponseEntity<ResponseDto> reissue(@RequestHeader(value = "Authorization", required = false) String authorization, @RequestParam String refreshToken) {
+        Response jwtTokenDto = tokenService.reissue(authorization, refreshToken);
+
+        ResponseDto responseDto = ResponseDto
+                .builder()
+                .status(HttpStatus.OK.value())
+                .body(JsonUtil.ObjectToJsonObject("jwtToken", jwtTokenDto))
+                .message("토큰이 재발급 되었습니다.")
+                .build();
 
         return ResponseEntity.ok(responseDto);
     }
