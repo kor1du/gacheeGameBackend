@@ -34,3 +34,4 @@ build/
 .vscode/
 src/main/resources/backup/data.sql
 src/main/resources/data.sql
+src/test/resources/data.sql
