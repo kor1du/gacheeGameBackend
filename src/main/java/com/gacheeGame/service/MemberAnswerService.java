@@ -75,7 +75,7 @@ public class MemberAnswerService {
     public void saveAnswerList(MemberAnswerDto.Request memberAnswerDtoRequest) {
         try {
             //답안 파싱
-            List<Long> answerList = memberAnswerDtoRequest.getAnswerList();
+            List<MemberAnswerDto.MemberAnswer> memberAnswerList = memberAnswerDtoRequest.getAnswerList();
 
             //내 유저 정보와 매칭된 유저 정보를 가져온다
             Long memberId = Long.parseLong(SessionUtil.getUser().getUsername());
@@ -103,9 +103,9 @@ public class MemberAnswerService {
             }
 
             //새로운 MemberAnswer 리스트 생성
-            List<MemberAnswer> memberAnswer = answerList
+            List<MemberAnswer> memberAnswer = memberAnswerList
                     .stream()
-                    .map(a -> memberAnswerMapper.map(a, categoryId, memberId, matchedMemberId, new Date(), new Date()))
+                    .map(ma -> memberAnswerMapper.map(ma.getAnswerId(), categoryId, memberId, matchedMemberId, ma.getComment(), new Date(), new Date()))
                     .collect(Collectors.toList());
 
             //DB 저장
